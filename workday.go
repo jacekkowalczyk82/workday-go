@@ -98,6 +98,12 @@ func main() {
 				fmt.Println("Resuming Workday time counting - DONE")
 			}
 
+		} else if name == "--status" {
+			fmt.Println("Status of current Workday ")
+			//print current work day hours, minutes
+		} else if name == "--report" {
+			fmt.Println("Report of ALL Workdays , use command line grep for filtering per month")
+			//print current work day hours, minutes
 		}
 		fmt.Println("\n\n\n Exit !!!")
 
