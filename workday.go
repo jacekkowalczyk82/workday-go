@@ -34,15 +34,20 @@ func main() {
 		if name == "--pause" {
 			fmt.Println("Pausing Workday time counting")
 			//do pause code
+			//create a file workday-pause.txt
+			//when this file will be detected by the main process
+			// we stop counting time
 		} else if name == "--resume" {
 			fmt.Println("Resuming Workday time counting")
 			//do resume code
+			//remove a file workday-pause.txt
+			// the main process should start counting time
 		}
 		fmt.Println("\n\n\n Exit !!!")
 
 	} else {
 		fmt.Println("Counting Workday ")
-		//to code for counting work time
+		//do code for counting work time
 	}
 
 }
