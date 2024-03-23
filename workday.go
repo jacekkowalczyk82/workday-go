@@ -40,6 +40,29 @@ func fileExists(fileName string) bool {
 	}
 }
 
+func showUsage() {
+	fmt.Println("\n")
+	fmt.Println("Workday-go - Application monitors work time. \n " +
+		"Every few minutes it save the current progress of work time counter.")
+
+	fmt.Println("Usage:")
+	fmt.Println("    workday.exe --daemon\n" +
+		"      to start counting of work time ")
+	fmt.Println("    workday.exe --pause\n" +
+		"      to pause counting of work time, for example: \n" +
+		"      when you make a break in work to go out for a walk")
+	fmt.Println("    workday.exe --resume\n" +
+		"      to resume counting of work time ")
+	fmt.Println("    workday.exe --status\n" +
+		"      to print current day status of work time ")
+	fmt.Println("    workday.exe --report\n" +
+		"      to print all statuses of work time ")
+
+	fmt.Println("\nAll aguments you provided: ")
+	fmt.Println(os.Args)
+
+}
+
 func main() {
 
 	//argsWithProgramName := os.Args
@@ -61,8 +84,27 @@ func main() {
 	// fmt.Println("\n\n\n")
 
 	if len(os.Args) > 1 {
-		name := os.Args[1]
-		if name == "--pause" {
+		appCommandParam := os.Args[1]
+		if appCommandParam == "--daemon" {
+			fmt.Println("Counting Workday -- daemon STARTED")
+			//do code for counting work time
+			for true {
+
+				time.Sleep(time.Second)
+
+				var paused bool = fileExists("workday-pause.txt")
+				if paused {
+
+					fmt.Println("Workday time counting - PAUSED")
+
+				} else {
+					fmt.Println("Workday time - COUNTING")
+
+				}
+
+			}
+
+		} else if appCommandParam == "--pause" {
 			fmt.Println("Pausing Workday time counting")
 			//do pause code
 			//create a file workday-pause.txt
@@ -83,7 +125,7 @@ func main() {
 
 			fmt.Println("Pausing Workday time counting - DONE")
 
-		} else if name == "--resume" {
+		} else if appCommandParam == "--resume" {
 			fmt.Println("Resuming Workday time counting")
 			//do resume code
 			//remove a file workday-pause.txt
@@ -98,33 +140,22 @@ func main() {
 				fmt.Println("Resuming Workday time counting - DONE")
 			}
 
-		} else if name == "--status" {
+		} else if appCommandParam == "--status" {
 			fmt.Println("Status of current Workday ")
 			//print current work day hours, minutes
-		} else if name == "--report" {
+		} else if appCommandParam == "--report" {
 			fmt.Println("Report of ALL Workdays , use command line grep for filtering per month")
 			//print current work day hours, minutes
+		} else {
+			fmt.Println("\n\nWorkday - INVALID params provided")
+			showUsage()
 		}
 		fmt.Println("\n\n\n Exit !!!")
 
 	} else {
-		fmt.Println("Counting Workday ")
-		//do code for counting work time
-		for true {
-
-			time.Sleep(time.Second)
-
-			var paused bool = fileExists("workday-pause.txt")
-			if paused {
-
-				fmt.Println("Workday time counting - PAUSED")
-
-			} else {
-				fmt.Println("Workday time - COUNTING")
-
-			}
-
-		}
+		fmt.Println("\n\nWorkday - No params provided")
+		//do code show usage
+		showUsage()
 
 	}
 
