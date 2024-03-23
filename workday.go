@@ -12,6 +12,15 @@ import (
 https://gobyexample.com/command-line-arguments
 */
 
+var CONST_TIME_FORMAT = "2006-01-02 03:04:05"
+var CONST_DATE_FORMAT = "2006-01-02"
+var CONST_WORKDAY_RECORDS_DIR_PATH = "workday_records"
+var CONST_WORKDAY_RECORDS_FILE_PREFIX = "worktime_"
+
+var CONST_5_MINUTES_SECONDS = 300
+
+// var CONST_5_MINUTES_SECONDS = 30 // for testing
+
 func check(e error) {
 	if e != nil {
 		panic(e)
@@ -26,7 +35,7 @@ func fileExists(fileName string) bool {
 
 	} else if errors.Is(err, os.ErrNotExist) {
 		// file does *not* exist
-		fmt.Println("File " + fileName + " does NOT exist.")
+		// fmt.Println("File " + fileName + " does NOT exist.")
 		return false
 
 	} else {
@@ -63,6 +72,21 @@ func showUsage() {
 
 }
 
+func saveWorkTimetoDumpFile(worktime int64, filePath string) {
+
+	dumpFile, err := os.Create(filePath)
+	check(err)
+
+	//It’s idiomatic to defer a Close immediately after opening a file.
+	defer dumpFile.Close()
+
+	bufferedWriter := bufio.NewWriter(dumpFile)
+	writtenBytes, err := bufferedWriter.WriteString(fmt.Sprintf("%d\n", worktime))
+	check(err)
+	fmt.Printf("wrote %d bytes\n", writtenBytes)
+	bufferedWriter.Flush()
+
+}
 func main() {
 
 	//argsWithProgramName := os.Args
@@ -82,25 +106,106 @@ func main() {
 	// fmt.Println("\n\n\n Your all aguments: ")
 	// fmt.Println(os.Args)
 	// fmt.Println("\n\n\n")
+	var paused bool = false
+	var totalWorkTimeSeconds int64 = 0
+
+	var startPausedTimeSeconds int64 = 0
+	var totalPausedTimeSeconds int64 = 0
+	var currentPausedTimeSeconds int64 = 0
 
 	if len(os.Args) > 1 {
 		appCommandParam := os.Args[1]
 		if appCommandParam == "--daemon" {
-			fmt.Println("Counting Workday -- daemon STARTED")
+
+			startTime := time.Now()
+			startTimeUnix := startTime.Unix()
+			lastDumpTimeUnix := startTimeUnix
+			fmt.Println("Counting Workday -- daemon STARTED " + startTime.String())
+			fmt.Println("Counting Workday -- daemon STARTED " + startTime.GoString())
 			//do code for counting work time
+
+			// check for existing dump file and load it and set values for totalWorkTimeSeconds
+
+			fmt.Println("Workday time - COUNTING")
+
 			for true {
 
-				time.Sleep(time.Second)
+				currentTime := time.Now()
+				// fmt.Println("time: " + currentTime.String())
 
-				var paused bool = fileExists("workday-pause.txt")
+				// fmt.Println("currentTime.Format : ", currentTime.Format(CONST_TIME_FORMAT))
+				// fmt.Println("currentTime.Format : ", currentTime.Format(time.RFC3339))
+
+				// fmt.Println("currentTime.UNIX Epoch Seconds: ", currentTime.Unix())
+
+				currentTimeUnixSeconds := currentTime.Unix()
+				// fmt.Println("currentTime.UNIX Epoch Seconds: ", currentTimeUnixSeconds)
+
+				// y1, m1, d1 := currentTime.Date()
+				// h1, min1, s1 := currentTime.Clock()
+				// fmt.Println("date: " + strconv.Itoa(y1) + "-" + m1.String() + "-" + strconv.Itoa(d1))
+				// fmt.Println("time: " + strconv.Itoa(h1) + ":" + strconv.Itoa(min1) + ":" + strconv.Itoa(s1))
+
+				// fmt.Println("The time is", currentTime)
+
+				// fmt.Printf("%d-%2d-%d %d:%d:%d\n",
+				// 	currentTime.Year(),
+				// 	currentTime.Month(),
+				// 	currentTime.Day(),
+				// 	currentTime.Hour(),
+				// 	currentTime.Hour(),
+				// 	currentTime.Second())
+				// elapsedTimeSeconds := currentTimeUnixSeconds - startTimeUnix
+				elapsedFromLastDumpTimeSeconds := currentTimeUnixSeconds - lastDumpTimeUnix
+				paused = fileExists("workday-pause.txt")
 				if paused {
 
 					fmt.Println("Workday time counting - PAUSED")
+					//paused = true
+					// totalWorkTimeSeconds = totalWorkTimeSeconds + leftTimeSeconds
+					if startPausedTimeSeconds == 0 {
+						fmt.Println("Workday time counting - PAUSE detected, marking pause time")
+						startPausedTimeSeconds = currentTimeUnixSeconds
+						currentPausedTimeSeconds = 0
+						// totalPausedTimeSeconds = totalPausedTimeSeconds + 0
+					} else {
+						currentPausedTimeSeconds = currentTimeUnixSeconds - startPausedTimeSeconds
+
+					}
+					fmt.Println("Workday time counting - PAUSED for total: ", totalPausedTimeSeconds, " seconds")
+					fmt.Println("Workday time counting - PAUSED for this pause: ", currentPausedTimeSeconds, " seconds")
 
 				} else {
-					fmt.Println("Workday time - COUNTING")
+
+					// count total pause,
+					totalPausedTimeSeconds = totalPausedTimeSeconds + currentPausedTimeSeconds
+					//if counting then reset startPausedTimeSeconds
+					startPausedTimeSeconds = 0
+					currentPausedTimeSeconds = 0
+
+					totalWorkTimeSeconds = currentTimeUnixSeconds - totalPausedTimeSeconds - startTimeUnix
+					fmt.Print("\rWorkday time counting - total work time: ", totalWorkTimeSeconds, ", paused: ", totalPausedTimeSeconds, " seconds")
+
+					if elapsedFromLastDumpTimeSeconds > int64(CONST_5_MINUTES_SECONDS) {
+						fmt.Println("Workday time - COUNTING, 5 minutes passed")
+						fmt.Println("currentTime.date format : ", currentTime.Format(CONST_DATE_FORMAT))
+						fmt.Println("currentTime.Format : ", currentTime.Format(CONST_TIME_FORMAT))
+
+						fmt.Println("currentTime.Format : ", currentTime.Format(time.RFC3339))
+						fmt.Println("currentTime.UNIX Epoch Seconds: ", currentTimeUnixSeconds)
+
+						//do dump file of total worktime for the given date
+						//make dir workday_records
+						os.MkdirAll(CONST_WORKDAY_RECORDS_DIR_PATH, 0755)
+						saveWorkTimetoDumpFile(totalWorkTimeSeconds, CONST_WORKDAY_RECORDS_DIR_PATH+"/"+CONST_WORKDAY_RECORDS_FILE_PREFIX+startTime.Format(CONST_DATE_FORMAT)+".dmp")
+
+						lastDumpTimeUnix = currentTimeUnixSeconds
+
+					}
 
 				}
+
+				time.Sleep(time.Second)
 
 			}
 
