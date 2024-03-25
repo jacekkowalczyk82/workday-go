@@ -207,7 +207,7 @@ func main() {
 					}
 					fmt.Println("Workday time counting - PAUSED for total: ", totalPausedTimeSeconds, " seconds")
 					fmt.Println("Workday time counting - PAUSED for this pause: ", currentPausedTimeSeconds, " seconds")
-
+					fmt.Println("")
 				} else {
 
 					// count total pause,
@@ -234,6 +234,7 @@ func main() {
 
 						SaveWorkTimetoDumpFile(totalWorkTimeSeconds, dumpFilePath)
 						fmt.Println("Saved elapsed time: " + GetHumanReadableTime(totalWorkTimeSeconds))
+						fmt.Println("")
 
 						lastDumpTimeUnix = currentTimeUnixSeconds
 
@@ -246,6 +247,7 @@ func main() {
 			}
 
 		} else if appCommandParam == "--pause" {
+			fmt.Println("")
 			fmt.Println("Pausing Workday time counting")
 			//do pause code
 			//create a file workday-pause.txt
@@ -265,8 +267,10 @@ func main() {
 			bufferedWriter.Flush()
 
 			fmt.Println("Pausing Workday time counting - DONE")
+			fmt.Println("")
 
 		} else if appCommandParam == "--resume" {
+			fmt.Println("")
 			fmt.Println("Resuming Workday time counting")
 			//do resume code
 			//remove a file workday-pause.txt
@@ -280,18 +284,23 @@ func main() {
 				fmt.Println("Successfully deleted file: ", "workday-pause.txt") //print success if file is removed
 				fmt.Println("Resuming Workday time counting - DONE")
 			}
+			fmt.Println("")
 
 		} else if appCommandParam == "--status" {
+			fmt.Println("")
 			fmt.Println("Status of current Workday ")
 			//print current work day hours, minutes
 
 			// TO BE implemented
+			fmt.Println("")
 
 		} else if appCommandParam == "--report" {
+			fmt.Println("")
 			fmt.Println("Report of ALL Workdays , use command line grep for filtering per month")
 			//print current work day hours, minutes
 
 			// TO BE implemented
+			fmt.Println("")
 		} else {
 			fmt.Println("\n\nWorkday - INVALID params provided")
 			ShowUsage()
