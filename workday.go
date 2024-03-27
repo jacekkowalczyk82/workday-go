@@ -14,7 +14,7 @@ import (
 https://gobyexample.com/command-line-arguments
 */
 
-var CONST_TIME_FORMAT = "2006-01-02 03:04:05"
+var CONST_TIME_FORMAT = "2006-01-02 15:04:05"
 var CONST_DATE_FORMAT = "2006-01-02"
 var CONST_WORKDAY_RECORDS_DIR_PATH = "workday_records"
 var CONST_WORKDAY_RECORDS_FILE_PREFIX = "worktime_"
