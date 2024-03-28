@@ -88,8 +88,8 @@ func SaveWorkTimetoDumpFile(worktime int64, filePath string) {
 	bufferedWriter := bufio.NewWriter(dumpFile)
 	writtenBytes, err := bufferedWriter.WriteString(fmt.Sprintf("%v", worktime))
 	check(err)
-	fmt.Printf("wrote %d bytes\n", writtenBytes)
 	bufferedWriter.Flush()
+	fmt.Printf("wrote %d bytes\n", writtenBytes)
 }
 
 func ParseInt64(numberString string) int64 {
@@ -171,6 +171,7 @@ func main() {
 				dumpFileWorkTimeSeconds = ReadWorkTimeFromDumpFile(dumpFilePath)
 				fmt.Println("Loaded elapsed time: " + GetHumanReadableTime(dumpFileWorkTimeSeconds))
 				// read it only once from dump file, do NOT modify this VARiABLE ever
+				fmt.Println("")
 			}
 
 			for true {
