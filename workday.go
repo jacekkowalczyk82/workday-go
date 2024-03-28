@@ -206,8 +206,9 @@ func main() {
 						currentPausedTimeSeconds = currentTimeUnixSeconds - startPausedTimeSeconds
 
 					}
-					fmt.Println("Workday time counting - PAUSED for total: ", totalPausedTimeSeconds, " seconds")
-					fmt.Println("Workday time counting - PAUSED for this pause: ", currentPausedTimeSeconds, " seconds")
+					fmt.Println("")
+					fmt.Println("Workday time counting - PAUSED for total: ", totalPausedTimeSeconds, " seconds ", GetHumanReadableTime(totalPausedTimeSeconds))
+					fmt.Println("Workday time counting - PAUSED for this pause: ", currentPausedTimeSeconds, " seconds ", GetHumanReadableTime(currentPausedTimeSeconds))
 					fmt.Println("")
 				} else {
 
