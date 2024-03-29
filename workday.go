@@ -221,7 +221,7 @@ func main() {
 					totalWorkTimeSeconds = dumpFileWorkTimeSeconds + currentTimeUnixSeconds - totalPausedTimeSeconds - startTimeUnix
 					fmt.Print("\rWorkday time counting - total work time: ", totalWorkTimeSeconds, " seconds = "+GetHumanReadableTime(totalWorkTimeSeconds)+", paused: ", totalPausedTimeSeconds, " seconds       ")
 
-					if elapsedFromLastDumpTimeSeconds > int64(CONST_DUMP_PERIOD_SECONDS) {
+					if elapsedFromLastDumpTimeSeconds >= int64(CONST_DUMP_PERIOD_SECONDS) {
 						fmt.Println("")
 						fmt.Println("DEBUG::Workday time - COUNTING, 5 minutes passed")
 						fmt.Println("DEBUG::currentTime.date format : ", currentTime.Format(CONST_DATE_FORMAT))
