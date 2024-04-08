@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 operating_systems=(linux windows)
-version=0.4-20240328
+version=0.5-20240408
 
 for os in ${operating_systems[@]}
 do
