@@ -33,7 +33,7 @@ func check(e error) {
 func FileExists(fileName string) bool {
 	if _, err := os.Stat(fileName); err == nil {
 
-		fmt.Println("File " + fileName + " exists.")
+		// fmt.Println("File " + fileName + " exists.")
 		return true
 
 	} else if errors.Is(err, os.ErrNotExist) {
@@ -195,21 +195,29 @@ func main() {
 				elapsedFromLastDumpTimeSeconds := currentTimeUnixSeconds - lastDumpTimeUnix
 				paused = FileExists("workday-pause.txt")
 				if paused {
-					fmt.Println("")
-					fmt.Println("Workday time counting - PAUSED")
-					//paused = true
+					pausedTimeModulo60 := currentPausedTimeSeconds % int64(CONST_DUMP_PERIOD_SECONDS)
+
 					if startPausedTimeSeconds == 0 {
-						fmt.Println("DEBUG::Workday time counting - PAUSE detected, marking pause time")
+						if (pausedTimeModulo60 >= 0) && (pausedTimeModulo60 < 2) {
+							fmt.Println("")
+							fmt.Println("Workday time counting - PAUSED")
+							//paused = true
+							fmt.Println("DEBUG::Workday time counting - PAUSE detected, marking pause time")
+
+							fmt.Println("")
+						}
+
 						startPausedTimeSeconds = currentTimeUnixSeconds
 						currentPausedTimeSeconds = 0
 					} else {
 						currentPausedTimeSeconds = currentTimeUnixSeconds - startPausedTimeSeconds
 
 					}
-					fmt.Println("")
-					fmt.Println("Workday time counting - PAUSED for total: ", totalPausedTimeSeconds, " seconds ", GetHumanReadableTime(totalPausedTimeSeconds))
-					fmt.Println("Workday time counting - PAUSED for this pause: ", currentPausedTimeSeconds, " seconds ", GetHumanReadableTime(currentPausedTimeSeconds))
-					fmt.Println("")
+
+					fmt.Print("\rWorkday time counting - PAUSED for this pause: ", currentPausedTimeSeconds,
+						" seconds ", GetHumanReadableTime(currentPausedTimeSeconds),
+						" in total: ", totalPausedTimeSeconds, " seconds ", GetHumanReadableTime(totalPausedTimeSeconds))
+
 				} else {
 
 					// count total pause,
@@ -219,7 +227,10 @@ func main() {
 					currentPausedTimeSeconds = 0
 
 					totalWorkTimeSeconds = dumpFileWorkTimeSeconds + currentTimeUnixSeconds - totalPausedTimeSeconds - startTimeUnix
-					fmt.Print("\rWorkday time counting - total work time: ", totalWorkTimeSeconds, " seconds = "+GetHumanReadableTime(totalWorkTimeSeconds)+", paused: ", totalPausedTimeSeconds, " seconds       ")
+
+					fmt.Print("\rWorkday time counting - total work time: ", totalWorkTimeSeconds,
+						" seconds = "+GetHumanReadableTime(totalWorkTimeSeconds),
+						", paused: ", totalPausedTimeSeconds, " seconds                                              ")
 
 					if elapsedFromLastDumpTimeSeconds >= int64(CONST_DUMP_PERIOD_SECONDS) {
 						fmt.Println("")
