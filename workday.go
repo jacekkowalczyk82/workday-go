@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strconv"
 	"time"
 )
@@ -97,7 +96,7 @@ func ParseInt64(numberString string) int64 {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Parsed number, %v with type %s!\n", number, reflect.TypeOf(number))
+	// fmt.Printf("DEBUG::Parsed number, %v with type %s!\n", number, reflect.TypeOf(number))
 
 	return number
 }
@@ -113,12 +112,12 @@ func GetHumanReadableTime(secondsTime int64) string {
 }
 
 func ReadWorkTimeFromDumpFile(filePath string) int64 {
-	currentTime := time.Now()
-	fmt.Println("Reading dump file "+filePath, currentTime.Format(CONST_TIME_FORMAT))
+	//currentTime := time.Now()
+	//fmt.Println("DEBUG::Reading dump file "+filePath, currentTime.Format(CONST_TIME_FORMAT))
 
 	data, err := os.ReadFile(filePath)
 	check(err)
-	fmt.Println(string(data))
+	//fmt.Println("DEBUG::", string(data))
 	return ParseInt64(string(data))
 }
 
@@ -150,17 +149,19 @@ func main() {
 	var totalPausedTimeSeconds int64 = 0
 	var currentPausedTimeSeconds int64 = 0
 
+	startTime := time.Now()
+	startTimeUnix := startTime.Unix()
+	lastDumpTimeUnix := startTimeUnix
+
+	dumpFilePath := CONST_WORKDAY_RECORDS_DIR_PATH + "/" + CONST_WORKDAY_RECORDS_FILE_PREFIX + startTime.Format(CONST_DATE_FORMAT) + ".dmp"
+
 	if len(os.Args) > 1 {
 		appCommandParam := os.Args[1]
 		if appCommandParam == "--daemon" {
 
-			startTime := time.Now()
-			startTimeUnix := startTime.Unix()
-			lastDumpTimeUnix := startTimeUnix
 			fmt.Println("Counting Workday -- daemon STARTED " + startTime.String())
 			// fmt.Println("Counting Workday -- daemon STARTED " + startTime.GoString())
 
-			dumpFilePath := CONST_WORKDAY_RECORDS_DIR_PATH + "/" + CONST_WORKDAY_RECORDS_FILE_PREFIX + startTime.Format(CONST_DATE_FORMAT) + ".dmp"
 			//do code for counting work time
 
 			// check for existing dump file and load it and set values for totalWorkTimeSeconds
@@ -303,6 +304,18 @@ func main() {
 			fmt.Println("")
 			fmt.Println("Status of current Workday ")
 			//print current work day hours, minutes
+
+			if FileExists(dumpFilePath) {
+				dumpFileWorkTimeSeconds = ReadWorkTimeFromDumpFile(dumpFilePath)
+
+				// read it only once from dump file, do NOT modify this VARiABLE ever
+				fmt.Println("")
+				fmt.Println("Workday time ", startTime.Format(CONST_DATE_FORMAT), " - ", dumpFileWorkTimeSeconds,
+					" seconds = ", GetHumanReadableTime(dumpFileWorkTimeSeconds))
+
+			} else {
+				fmt.Println("No Workday records for Today: ", startTime.Format(CONST_DATE_FORMAT))
+			}
 
 			// TO BE implemented
 			fmt.Println("")
