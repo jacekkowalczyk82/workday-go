@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -22,6 +24,10 @@ var CONST_WORKDAY_RECORDS_FILE_PREFIX = "worktime_"
 var CONST_DUMP_PERIOD_SECONDS = 60 // every minute
 
 // var CONST_DUMP_PERIOD_SECONDS = 30 // for testing
+
+var debugLog *log.Logger
+var infoLog *log.Logger
+var errorLog *log.Logger
 
 func check(e error) {
 	if e != nil {
@@ -51,6 +57,43 @@ func FileExists(fileName string) bool {
 	}
 }
 
+func configureLogs(date_time string) (*log.Logger, *log.Logger, *log.Logger) {
+	// configure logs
+	logFile, err := openLogFile("./logs/", "./logs/workday-"+date_time+".log")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+
+	// log.Println("Log file created")
+
+	debugLog = log.New(logFile, "[debug]", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	// debugLog.Println("this is debug")
+
+	infoLog = log.New(mw, "[info]", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	// infoLog.Println("this is info")
+
+	errorLog = log.New(mw, "[error]", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	// errorLog.Println("this is error")
+
+	return debugLog, infoLog, errorLog
+
+}
+
+func openLogFile(dirPath string, path string) (*os.File, error) {
+	os.MkdirAll(dirPath, 0755)
+
+	logFile, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		return nil, err
+	}
+	return logFile, nil
+}
+
 func ShowUsage() {
 	fmt.Println("\n")
 	fmt.Println("Workday-go - Application monitors work time. \n " +
@@ -76,7 +119,8 @@ func ShowUsage() {
 
 func SaveWorkTimetoDumpFile(worktime int64, filePath string) {
 	currentTime := time.Now()
-	fmt.Println("Saving dump file "+filePath, currentTime.Format(CONST_TIME_FORMAT))
+	debugLog.Println("")
+	debugLog.Println("Saving dump file "+filePath, currentTime.Format(CONST_TIME_FORMAT))
 
 	dumpFile, err := os.Create(filePath)
 	check(err)
@@ -88,7 +132,8 @@ func SaveWorkTimetoDumpFile(worktime int64, filePath string) {
 	writtenBytes, err := bufferedWriter.WriteString(fmt.Sprintf("%v", worktime))
 	check(err)
 	bufferedWriter.Flush()
-	fmt.Printf("wrote %d bytes\n", writtenBytes)
+	debugLog.Printf("wrote %d bytes\n", writtenBytes)
+	debugLog.Println("")
 }
 
 func ParseInt64(numberString string) int64 {
@@ -117,7 +162,7 @@ func ReadWorkTimeFromDumpFile(filePath string) int64 {
 
 	data, err := os.ReadFile(filePath)
 	check(err)
-	//fmt.Println("DEBUG::", string(data))
+	debugLog.Println("read ", string(data))
 	return ParseInt64(string(data))
 }
 
@@ -141,6 +186,8 @@ func main() {
 	// fmt.Println(os.Args)
 	// fmt.Println("\n\n\n")
 	var paused bool = false
+	var fromPauseToResume string = ""
+
 	var totalWorkTimeSeconds int64 = 0
 	var dumpFileWorkTimeSeconds int64 = 0
 	// read it only once from dump file, do NOT modify this VARiABLE ever
@@ -153,26 +200,29 @@ func main() {
 	startTimeUnix := startTime.Unix()
 	lastDumpTimeUnix := startTimeUnix
 
+	// configure logs
+	debugLog, infoLog, errorLog := configureLogs(startTime.Format(CONST_DATE_FORMAT))
+
 	dumpFilePath := CONST_WORKDAY_RECORDS_DIR_PATH + "/" + CONST_WORKDAY_RECORDS_FILE_PREFIX + startTime.Format(CONST_DATE_FORMAT) + ".dmp"
 
 	if len(os.Args) > 1 {
 		appCommandParam := os.Args[1]
 		if appCommandParam == "--daemon" {
 
-			fmt.Println("Counting Workday -- daemon STARTED " + startTime.String())
+			infoLog.Println("Counting Workday -- daemon STARTED " + startTime.String())
 			// fmt.Println("Counting Workday -- daemon STARTED " + startTime.GoString())
 
 			//do code for counting work time
 
 			// check for existing dump file and load it and set values for totalWorkTimeSeconds
 
-			fmt.Println("Workday time - COUNTING")
+			infoLog.Println("Workday time - COUNTING")
 
 			if FileExists(dumpFilePath) {
 				dumpFileWorkTimeSeconds = ReadWorkTimeFromDumpFile(dumpFilePath)
-				fmt.Println("Loaded elapsed time: " + GetHumanReadableTime(dumpFileWorkTimeSeconds))
+				debugLog.Println("Loaded elapsed time: " + GetHumanReadableTime(dumpFileWorkTimeSeconds))
 				// read it only once from dump file, do NOT modify this VARiABLE ever
-				fmt.Println("")
+				infoLog.Println("")
 			}
 
 			for true {
@@ -195,17 +245,25 @@ func main() {
 
 				elapsedFromLastDumpTimeSeconds := currentTimeUnixSeconds - lastDumpTimeUnix
 				paused = FileExists("workday-pause.txt")
-				if paused {
-					pausedTimeModulo60 := currentPausedTimeSeconds % int64(CONST_DUMP_PERIOD_SECONDS)
 
+				if paused {
+					if fromPauseToResume == "" {
+						fromPauseToResume = "resume->pause"
+					} else if fromPauseToResume == "pause->resume" {
+						//"pause->resume"
+						fromPauseToResume = "resume->pause"
+						fmt.Println("") // for correct printing of status line
+						infoLog.Println("Workday time counting - PAUSED\n")
+						debugLog.Println("Workday time - PAUSED")
+					}
+
+					pausedTimeModulo60 := currentPausedTimeSeconds % int64(CONST_DUMP_PERIOD_SECONDS)
 					if startPausedTimeSeconds == 0 {
 						if (pausedTimeModulo60 >= 0) && (pausedTimeModulo60 < 2) {
-							fmt.Println("")
-							fmt.Println("Workday time counting - PAUSED")
-							//paused = true
-							fmt.Println("DEBUG::Workday time counting - PAUSE detected, marking pause time")
 
-							fmt.Println("")
+							//paused = true
+							debugLog.Println("Workday time counting - PAUSE detected, marking pause time")
+
 						}
 
 						startPausedTimeSeconds = currentTimeUnixSeconds
@@ -214,12 +272,22 @@ func main() {
 						currentPausedTimeSeconds = currentTimeUnixSeconds - startPausedTimeSeconds
 
 					}
-
+					// status line
 					fmt.Print("\rWorkday time counting - PAUSED for this pause: ", currentPausedTimeSeconds,
 						" seconds ", GetHumanReadableTime(currentPausedTimeSeconds),
 						" in total: ", totalPausedTimeSeconds, " seconds ", GetHumanReadableTime(totalPausedTimeSeconds))
 
 				} else {
+					if fromPauseToResume == "resume->pause" {
+						fmt.Println("") // for correct printing of status line
+						infoLog.Println("Workday time - Resumed from pause - COUNTING\n")
+
+						fromPauseToResume = "pause->resume"
+					}
+					// else {
+					// 	//empty
+
+					// }
 
 					// count total pause,
 					totalPausedTimeSeconds = totalPausedTimeSeconds + currentPausedTimeSeconds
@@ -234,21 +302,21 @@ func main() {
 						", paused: ", totalPausedTimeSeconds, " seconds                                              ")
 
 					if elapsedFromLastDumpTimeSeconds >= int64(CONST_DUMP_PERIOD_SECONDS) {
-						fmt.Println("")
-						fmt.Println("DEBUG::Workday time - COUNTING, 5 minutes passed")
-						fmt.Println("DEBUG::currentTime.date format : ", currentTime.Format(CONST_DATE_FORMAT))
-						fmt.Println("DEBUG::currentTime.Format : ", currentTime.Format(CONST_TIME_FORMAT))
+						debugLog.Println("")
+						debugLog.Println("Workday time - COUNTING, 5 minutes passed")
+						debugLog.Println("currentTime.date format : ", currentTime.Format(CONST_DATE_FORMAT))
+						debugLog.Println("currentTime.Format : ", currentTime.Format(CONST_TIME_FORMAT))
 
-						fmt.Println("DEBUG::currentTime.RFC3339 : ", currentTime.Format(time.RFC3339))
-						fmt.Println("DEBUG::currentTime.UNIX Epoch Seconds: ", currentTimeUnixSeconds)
+						debugLog.Println("currentTime.RFC3339 : ", currentTime.Format(time.RFC3339))
+						debugLog.Println("currentTime.UNIX Epoch Seconds: ", currentTimeUnixSeconds)
 
 						//do dump file of total worktime for the given date
 						//make dir workday_records
 						os.MkdirAll(CONST_WORKDAY_RECORDS_DIR_PATH, 0755)
 
 						SaveWorkTimetoDumpFile(totalWorkTimeSeconds, dumpFilePath)
-						fmt.Println("Saved elapsed time: " + GetHumanReadableTime(totalWorkTimeSeconds))
-						fmt.Println("")
+						debugLog.Println("Saved elapsed time: " + GetHumanReadableTime(totalWorkTimeSeconds))
+						debugLog.Println("")
 
 						lastDumpTimeUnix = currentTimeUnixSeconds
 
@@ -261,8 +329,8 @@ func main() {
 			}
 
 		} else if appCommandParam == "--pause" {
-			fmt.Println("")
-			fmt.Println("Pausing Workday time counting")
+			infoLog.Println("")
+			infoLog.Println("Pausing Workday time counting")
 			//do pause code
 			//create a file workday-pause.txt
 			//when this file will be detected by the main process
@@ -277,64 +345,66 @@ func main() {
 			bufferedWriter := bufio.NewWriter(pauseFile)
 			writtenBytes, err := bufferedWriter.WriteString("PAUSED\n")
 			check(err)
-			fmt.Printf("wrote %d bytes\n", writtenBytes)
+			debugLog.Printf("wrote %d bytes\n", writtenBytes)
 			bufferedWriter.Flush()
 
-			fmt.Println("Pausing Workday time counting - DONE")
-			fmt.Println("")
+			infoLog.Println("Pausing Workday time counting - DONE")
+			infoLog.Println("")
 
 		} else if appCommandParam == "--resume" {
-			fmt.Println("")
-			fmt.Println("Resuming Workday time counting")
+			infoLog.Println("")
+			infoLog.Println("Resuming Workday time counting")
 			//do resume code
 			//remove a file workday-pause.txt
 			// the main process should start counting time
 
 			err := os.Remove("workday-pause.txt") //remove the file
 			if err != nil {
-				fmt.Println("Error: ", err) //print the error if file is not removed
-				fmt.Println("Resuming Workday time counting - FAILED")
+				errorLog.Println("Error: ", err) //print the error if file is not removed
+				errorLog.Println("Resuming Workday time counting - FAILED")
 			} else {
-				fmt.Println("Successfully deleted file: ", "workday-pause.txt") //print success if file is removed
-				fmt.Println("Resuming Workday time counting - DONE")
+				infoLog.Println("Successfully deleted file: ", "workday-pause.txt") //print success if file is removed
+				infoLog.Println("Resuming Workday time counting - DONE")
+
 			}
-			fmt.Println("")
+			infoLog.Println("")
 
 		} else if appCommandParam == "--status" {
-			fmt.Println("")
-			fmt.Println("Status of current Workday ")
+			infoLog.Println("")
+			infoLog.Println("Status of current Workday ")
 			//print current work day hours, minutes
 
 			if FileExists(dumpFilePath) {
 				dumpFileWorkTimeSeconds = ReadWorkTimeFromDumpFile(dumpFilePath)
 
 				// read it only once from dump file, do NOT modify this VARiABLE ever
-				fmt.Println("")
-				fmt.Println("Workday time ", startTime.Format(CONST_DATE_FORMAT), " - ", dumpFileWorkTimeSeconds,
+				infoLog.Println("")
+				infoLog.Println("Workday time ", startTime.Format(CONST_DATE_FORMAT), " - ", dumpFileWorkTimeSeconds,
 					" seconds = ", GetHumanReadableTime(dumpFileWorkTimeSeconds))
 
 			} else {
-				fmt.Println("No Workday records for Today: ", startTime.Format(CONST_DATE_FORMAT))
+				infoLog.Println("No Workday records for Today: ", startTime.Format(CONST_DATE_FORMAT))
 			}
 
 			// TO BE implemented
 			fmt.Println("")
 
 		} else if appCommandParam == "--report" {
-			fmt.Println("")
-			fmt.Println("Report of ALL Workdays , use command line grep for filtering per month")
+			infoLog.Println("")
+			infoLog.Println("Report of ALL Workdays , use command line grep for filtering per month")
 			//print current work day hours, minutes
 
 			// TO BE implemented
-			fmt.Println("")
+			infoLog.Println("")
 		} else {
-			fmt.Println("\n\nWorkday - INVALID params provided")
+			errorLog.Println("\n\n")
+			errorLog.Println("Workday - INVALID params provided")
 			ShowUsage()
 		}
-		fmt.Println("\n\n\n Exit !!!")
+		infoLog.Println(appCommandParam, "Exit !!!")
 
 	} else {
-		fmt.Println("\n\nWorkday - No params provided")
+		errorLog.Println("\n\nWorkday - No params provided")
 		ShowUsage()
 
 	}
