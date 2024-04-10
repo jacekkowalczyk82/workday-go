@@ -247,14 +247,20 @@ func main() {
 				paused = FileExists("workday-pause.txt")
 
 				if paused {
-					if fromPauseToResume == "" {
-						fromPauseToResume = "resume->pause"
-					} else if fromPauseToResume == "pause->resume" {
-						//"pause->resume"
+					if fromPauseToResume == "" || fromPauseToResume == "pause->resume" {
 						fromPauseToResume = "resume->pause"
 						fmt.Println("") // for correct printing of status line
 						infoLog.Println("Workday time counting - PAUSED\n")
 						debugLog.Println("Workday time - PAUSED")
+						// } else if fromPauseToResume == "pause->resume" {
+						// 	//"pause->resume"
+						// 	fromPauseToResume = "resume->pause"
+						// 	fmt.Println("") // for correct printing of status line
+						// 	infoLog.Println("Workday time counting - PAUSED\n")
+						// 	debugLog.Println("Workday time - PAUSED")
+					} else {
+						// if "resume->pause" do nothing
+
 					}
 
 					pausedTimeModulo60 := currentPausedTimeSeconds % int64(CONST_DUMP_PERIOD_SECONDS)
