@@ -414,10 +414,11 @@ func main() {
 			//print current work day hours, minutes
 			reportFiles := GetFilesInDir(CONST_WORKDAY_RECORDS_DIR_PATH)
 			for _, f := range reportFiles {
+				infoLog.Println(f.Name())
 				debugLog.Println(f.Name())
 				dumpFilePath := CONST_WORKDAY_RECORDS_DIR_PATH + "/" + f.Name()
 				dumpFileWorkTimeSeconds = ReadWorkTimeFromDumpFile(dumpFilePath)
-				GetHumanReadableTime(dumpFileWorkTimeSeconds)
+				infoLog.Println(GetHumanReadableTime(dumpFileWorkTimeSeconds))
 			}
 
 			// TO BE implemented
