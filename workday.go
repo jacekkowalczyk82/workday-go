@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"strconv"
@@ -48,13 +49,25 @@ func FileExists(fileName string) bool {
 
 	} else {
 		// Schrodinger: file may or may not exist. See err for details.
-		fmt.Println("Errors wile checking if " + fileName + " exists.")
-		fmt.Println(err)
+		errorLog.Println("Errors wile checking if " + fileName + " exists.")
+		errorLog.Println(err)
 
 		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
 		panic(err)
 
 	}
+}
+
+func GetFilesInDir(dirPath string) []fs.DirEntry {
+	dirEntries, err := os.ReadDir(dirPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, f := range dirEntries {
+		debugLog.Println(f.Name())
+	}
+	return dirEntries
 }
 
 func configureLogs(date_time string) (*log.Logger, *log.Logger, *log.Logger) {
@@ -399,6 +412,13 @@ func main() {
 			infoLog.Println("")
 			infoLog.Println("Report of ALL Workdays , use command line grep for filtering per month")
 			//print current work day hours, minutes
+			reportFiles := GetFilesInDir(CONST_WORKDAY_RECORDS_DIR_PATH)
+			for _, f := range reportFiles {
+				debugLog.Println(f.Name())
+				dumpFilePath := CONST_WORKDAY_RECORDS_DIR_PATH + "/" + f.Name()
+				dumpFileWorkTimeSeconds = ReadWorkTimeFromDumpFile(dumpFilePath)
+				GetHumanReadableTime(dumpFileWorkTimeSeconds)
+			}
 
 			// TO BE implemented
 			infoLog.Println("")
