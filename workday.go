@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -413,12 +414,74 @@ func main() {
 			infoLog.Println("Report of ALL Workdays , use command line grep for filtering per month")
 			//print current work day hours, minutes
 			reportFiles := GetFilesInDir(CONST_WORKDAY_RECORDS_DIR_PATH)
+			var workdayRecordsTotalSecondsPerDay map[string]int64
+			workdayRecordsTotalSecondsPerDay = make(map[string]int64)
+
+			var workdayRecordsTotalSecondsPerMonth map[string]int64
+			workdayRecordsTotalSecondsPerMonth = make(map[string]int64)
+
+			var numberOfWorkDaysPerMonth map[string]int64
+			numberOfWorkDaysPerMonth = make(map[string]int64)
+
 			for _, f := range reportFiles {
-				infoLog.Println(f.Name())
 				debugLog.Println(f.Name())
+
 				dumpFilePath := CONST_WORKDAY_RECORDS_DIR_PATH + "/" + f.Name()
 				dumpFileWorkTimeSeconds = ReadWorkTimeFromDumpFile(dumpFilePath)
-				infoLog.Println(GetHumanReadableTime(dumpFileWorkTimeSeconds))
+
+				debugLog.Println(GetHumanReadableTime(dumpFileWorkTimeSeconds))
+
+				fileNameElements := strings.Split(f.Name(), "_")
+				debugLog.Println(fileNameElements[1])
+				fileNameElements2 := strings.Split(fileNameElements[1], ".")
+				reportDate := fileNameElements2[0]
+				debugLog.Println(reportDate)
+				dateElements := strings.Split(reportDate, "-")
+				yearMonthPart := dateElements[0] + "-" + dateElements[1]
+
+				workdayRecordsTotalSecondsPerDay[reportDate] = dumpFileWorkTimeSeconds
+
+				sumWorkTimeSecondsPerMonth, sumFound := workdayRecordsTotalSecondsPerMonth[yearMonthPart]
+				if sumFound {
+					//already added
+					sumWorkTimeSecondsPerMonth = sumWorkTimeSecondsPerMonth + dumpFileWorkTimeSeconds
+
+					// } else {
+					// 	//we must add it
+				}
+				workdayRecordsTotalSecondsPerMonth[yearMonthPart] = sumWorkTimeSecondsPerMonth
+
+				numberOfWorkDays, numberFound := numberOfWorkDaysPerMonth[yearMonthPart]
+				if numberFound {
+					//already added
+					numberOfWorkDays = numberOfWorkDays + 1
+
+					// } else {
+					// 	//we must add it
+				}
+				numberOfWorkDaysPerMonth[yearMonthPart] = numberOfWorkDays
+
+			} //for report files
+
+			//count avaerage, per Month
+			for yearMonthKey, totalSeconds := range workdayRecordsTotalSecondsPerMonth {
+
+				numberOfWorkDays, numberFound2 := numberOfWorkDaysPerMonth[yearMonthKey]
+				debugLog.Println("yearMonthKey", yearMonthKey)
+				debugLog.Println("totalSeconds", totalSeconds)
+				debugLog.Println("numberOfWorkDays", numberOfWorkDays)
+				if numberFound2 {
+					averagePerDay := totalSeconds / numberOfWorkDays
+					infoLog.Println("Month:", yearMonthKey, ", Total work seconds:", totalSeconds,
+						"=", GetHumanReadableTime(totalSeconds), ", Average per day:", averagePerDay, "=", GetHumanReadableTime(averagePerDay))
+					for dateKey, dateSeconds := range workdayRecordsTotalSecondsPerDay {
+						if strings.HasPrefix(dateKey, yearMonthKey) {
+							infoLog.Println("    ", dateKey, "->", GetHumanReadableTime(dateSeconds))
+						}
+					}
+
+				}
+
 			}
 
 			// TO BE implemented
