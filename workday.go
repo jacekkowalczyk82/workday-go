@@ -27,6 +27,8 @@ var CONST_DUMP_PERIOD_SECONDS = 60 // every minute
 
 // var CONST_DUMP_PERIOD_SECONDS = 30 // for testing
 
+var CONST_8H_SECONDS int64 = 60 * 60 * 8
+
 var debugLog *log.Logger
 var infoLog *log.Logger
 var errorLog *log.Logger
@@ -168,6 +170,14 @@ func GetHumanReadableTime(secondsTime int64) string {
 	minutes := fullMinutes % 60
 
 	return fmt.Sprintf("%v hours %v minutes %v seconds", hours, minutes, seconds)
+}
+
+func GetHumanReadableHours(secondsTime int64) string {
+	fullMinutes := secondsTime / 60
+
+	hours := fullMinutes / 60
+
+	return fmt.Sprintf("%v hours", hours)
 }
 
 func ReadWorkTimeFromDumpFile(filePath string) int64 {
@@ -472,8 +482,9 @@ func main() {
 				debugLog.Println("numberOfWorkDays", numberOfWorkDays)
 				if numberFound2 {
 					averagePerDay := totalSeconds / numberOfWorkDays
+					expectedWorkTime := numberOfWorkDays * CONST_8H_SECONDS
 					infoLog.Println("Month:", yearMonthKey, ", Total work seconds:", totalSeconds,
-						"=", GetHumanReadableTime(totalSeconds), ", Average per day:", averagePerDay, "=", GetHumanReadableTime(averagePerDay))
+						"=", GetHumanReadableTime(totalSeconds), "/ Expected Time", expectedWorkTime, "=", GetHumanReadableHours(expectedWorkTime), ", Average per day:", averagePerDay, "=", GetHumanReadableTime(averagePerDay))
 					for dateKey, dateSeconds := range workdayRecordsTotalSecondsPerDay {
 						if strings.HasPrefix(dateKey, yearMonthKey) {
 							infoLog.Println("    ", dateKey, "->", GetHumanReadableTime(dateSeconds))
