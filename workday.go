@@ -456,8 +456,8 @@ func main() {
 					//already added
 					sumWorkTimeSecondsPerMonth = sumWorkTimeSecondsPerMonth + dumpFileWorkTimeSeconds
 
-					// } else {
-					// 	//we must add it
+				} else {
+					sumWorkTimeSecondsPerMonth = 0 + dumpFileWorkTimeSeconds
 				}
 				workdayRecordsTotalSecondsPerMonth[yearMonthPart] = sumWorkTimeSecondsPerMonth
 
@@ -466,8 +466,9 @@ func main() {
 					//already added
 					numberOfWorkDays = numberOfWorkDays + 1
 
-					// } else {
+				} else {
 					// 	//we must add it
+					numberOfWorkDays = 1
 				}
 				numberOfWorkDaysPerMonth[yearMonthPart] = numberOfWorkDays
 
@@ -484,7 +485,9 @@ func main() {
 					averagePerDay := totalSeconds / numberOfWorkDays
 					expectedWorkTime := numberOfWorkDays * CONST_8H_SECONDS
 					infoLog.Println("Month:", yearMonthKey, ", Total work seconds:", totalSeconds,
-						"=", GetHumanReadableTime(totalSeconds), "/ Expected Time", expectedWorkTime, "=", GetHumanReadableHours(expectedWorkTime), ", Average per day:", averagePerDay, "=", GetHumanReadableTime(averagePerDay))
+						"=", GetHumanReadableTime(totalSeconds), "/ Expected Time", expectedWorkTime, "=",
+						GetHumanReadableHours(expectedWorkTime),
+						", Average per day:", averagePerDay, "=", GetHumanReadableTime(averagePerDay))
 					for dateKey, dateSeconds := range workdayRecordsTotalSecondsPerDay {
 						if strings.HasPrefix(dateKey, yearMonthKey) {
 							infoLog.Println("    ", dateKey, "->", GetHumanReadableTime(dateSeconds))
