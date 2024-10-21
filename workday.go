@@ -411,6 +411,13 @@ func main() {
 				infoLog.Println("")
 				infoLog.Println("Workday time ", startTime.Format(CONST_DATE_FORMAT), " - ", dumpFileWorkTimeSeconds,
 					" seconds = ", GetHumanReadableTime(dumpFileWorkTimeSeconds))
+				
+				paused = FileExists("workday-pause.txt")
+				if paused {	
+					infoLog.Println("Workday is paused !!!")
+				} else {
+					infoLog.Println("Workday is counting ... not paused ")
+				}
 
 			} else {
 				infoLog.Println("No Workday records for Today: ", startTime.Format(CONST_DATE_FORMAT))
